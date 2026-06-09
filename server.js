@@ -986,6 +986,13 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
             }
             
             if (result.success) {
+                // Registrar log de éxito
+                registrarLog(userId, userEmail, 'upload_python', {
+                    fileName: req.file.originalname,
+                    fileSize: req.file.size,
+                    fileType: fileExtension
+                }, req);
+
                 return res.json({
                     success: true,
                     schema: result.analysis.schema,
