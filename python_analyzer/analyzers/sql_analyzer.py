@@ -256,12 +256,37 @@ class SQLAnalyzer:
                 cols = [str(c.this) for c in part.args.get('expressions', [])]
                 reference = part.args.get('reference')
                 if reference and reference.this:
-                    ref_table = str(reference.this.this.this) if hasattr(reference.this, 'this') and hasattr(reference.this.this, 'this') else str(reference.this.this)
-                    ref_cols = [str(c.this) for c in reference.this.args.get('expressions', [])]
+                    ref_expr = reference.this
+                    if ref_expr.key == 'schema':
+                        ref_table = str(ref_expr.this.this) if hasattr(ref_expr.this, 'this') and hasattr(ref_expr.this.this, 'this') else str(ref_expr.this)
+                        ref_cols = [str(c.this) for c in ref_expr.args.get('expressions', [])]
+                    else:
+                        ref_table = str(ref_expr.this) if hasattr(ref_expr, 'this') else str(ref_expr)
+                        ref_cols = [str(c.this) for c in reference.this.args.get('expressions', [])] if hasattr(reference.this, 'args') else []
                     for col in cols:
                         foreign_keys.append({'column': col, 'references': {'table': ref_table, 'column': ref_cols[0] if ref_cols else 'id'}})
             elif part.key == 'primarykey':
                 primary_keys.extend([str(c.this) for c in part.args.get('expressions', [])])
+            elif part.key == 'constraint':
+                for expr in part.args.get('expressions', []):
+                    if expr.key == 'primarykey':
+                        primary_keys.extend([str(c.this) for c in expr.args.get('expressions', [])])
+                    elif expr.key == 'foreignkey':
+                        cols = [str(c.this) for c in expr.args.get('expressions', [])]
+                        reference = expr.args.get('reference')
+                        if reference and reference.this:
+                            ref_expr = reference.this
+                            if ref_expr.key == 'schema':
+                                ref_table = str(ref_expr.this.this) if hasattr(ref_expr.this, 'this') and hasattr(ref_expr.this.this, 'this') else str(ref_expr.this)
+                                ref_cols = [str(c.this) for c in ref_expr.args.get('expressions', [])]
+                            else:
+                                ref_table = str(ref_expr.this) if hasattr(ref_expr, 'this') else str(ref_expr)
+                                ref_cols = [str(c.this) for c in reference.this.args.get('expressions', [])] if hasattr(reference.this, 'args') else []
+                            for col in cols:
+                                foreign_keys.append({
+                                    'column': col,
+                                    'references': {'table': ref_table, 'column': ref_cols[0] if ref_cols else 'id'}
+                                })
 
         primary_keys = list(dict.fromkeys(primary_keys))
         for col in columns:
@@ -384,7 +409,14 @@ class SQLAnalyzer:
                         continue
                         
                     if upper_line.startswith('CONSTRAINT') or upper_line.startswith('FOREIGN KEY'):
-                        fk_match = re.search(r'FOREIGN\s+KEY\s*\((?:`|")?(\w+)(?:`|")?\)\s*REFERENCES\s+(?:`|")?(\w+)(?:`|")?\s*\((?:`|")?(\w+)(?:`|")?\)', line, re.IGNORECASE)
+                        # Verificar si es una Llave Primaria en un CONSTRAINT
+                        pk_match = re.search(r'PRIMARY\s+KEY\s*\((.*?)\)', line, re.IGNORECASE)
+                        if pk_match:
+                            pks = [p.strip().replace('`', '').replace('"', '').split('.')[-1] for p in pk_match.group(1).split(',')]
+                            primary_keys.extend(pks)
+                            continue
+
+                        fk_match = re.search(r'FOREIGN\s+KEY\s*\((?:`|")?(\w+)(?:`|")?\)\s*REFERENCES\s+(?:(?:`|")?\w+(?:`|")?\.)?(?:`|")?(\w+)(?:`|")?\s*\((?:`|")?(\w+)(?:`|")?\)', line, re.IGNORECASE)
                         if fk_match:
                             col_name = fk_match.group(1)
                             ref_table = fk_match.group(2)
@@ -403,7 +435,7 @@ class SQLAnalyzer:
                         continue
                     
                     # Detectar relación en la misma línea de la columna (inline)
-                    inline_fk_match = re.search(r'^(?:`|")?(\w+)(?:`|")?\s+[\w()]+\s+.*?REFERENCES\s+(?:`|")?(\w+)(?:`|")?\s*\((?:`|")?(\w+)(?:`|")?\)', line, re.IGNORECASE)
+                    inline_fk_match = re.search(r'^(?:`|")?(\w+)(?:`|")?\s+[\w()]+\s+.*?REFERENCES\s+(?:(?:`|")?\w+(?:`|")?\.)?(?:`|")?(\w+)(?:`|")?\s*\((?:`|")?(\w+)(?:`|")?\)', line, re.IGNORECASE)
                     if inline_fk_match:
                         col_name = inline_fk_match.group(1)
                         ref_table = inline_fk_match.group(2)
@@ -456,7 +488,7 @@ class SQLAnalyzer:
                 })
         
         # Buscar relaciones ALTER TABLE para llaves foráneas fuera de CREATE TABLE
-        alter_table_regex = re.compile(r'ALTER\s+TABLE\s+(?:`|")?(\w+)(?:`|")?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((?:`|")?(\w+)(?:`|")?\)\s*REFERENCES\s+(?:`|")?(\w+)(?:`|")?\s*\((?:`|")?(\w+)(?:`|")?\)', re.IGNORECASE)
+        alter_table_regex = re.compile(r'ALTER\s+TABLE\s+(?:(?:`|")?\w+(?:`|")?\.)?(?:`|")?(\w+)(?:`|")?\s+ADD\s+(?:CONSTRAINT\s+\w+\s+)?FOREIGN\s+KEY\s*\((?:`|")?(\w+)(?:`|")?\)\s*REFERENCES\s+(?:(?:`|")?\w+(?:`|")?\.)?(?:`|")?(\w+)(?:`|")?\s*\((?:`|")?(\w+)(?:`|")?\)', re.IGNORECASE)
         for alter_match in alter_table_regex.finditer(content):
             table_name = alter_match.group(1)
             col_name = alter_match.group(2)
