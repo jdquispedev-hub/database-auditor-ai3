@@ -1,4 +1,4 @@
-/* ==========================================================================
+﻿/* ==========================================================================
    DataScript AI - Login & Register (Immersive DB Theme V5)
    Colores exactos del sistema: #a78bfa, #5e6ad2, #0a0e1a, #34d399, #22d3ee
    ========================================================================== */
@@ -41,6 +41,7 @@ html, body {
     inset: 0;
     z-index: 0;
     background: rgba(10, 14, 26);
+    pointer-events: none;
 }
 
 @keyframes bgShift {
@@ -91,7 +92,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Panel Decorations — DB Elements INSIDE Welcome Panel
+   Panel Decorations â€” DB Elements INSIDE Welcome Panel
    ========================================================================== */
 
 .panel-decorations {
@@ -127,7 +128,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Form Panel Decorations — Floating Molecules (landing page style)
+   Form Panel Decorations â€” Floating Molecules (landing page style)
    ========================================================================== */
 
 .form-decorations {
@@ -177,7 +178,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Extra Floating Designs — Welcome Panel
+   Extra Floating Designs â€” Welcome Panel
    ========================================================================== */
 
 /* ----- Code Brackets ----- */
@@ -431,7 +432,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Welcome Panel — Slides left/right
+   Welcome Panel â€” Slides left/right
    ========================================================================== */
 
 .welcome-panel {
@@ -546,7 +547,7 @@ html, body {
 }
 
 /* ==========================================================================
-   Form Panel — Slides opposite direction
+   Form Panel â€” Slides opposite direction
    ========================================================================== */
 
 .form-panel {
@@ -558,19 +559,36 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 50px 60px;
+    padding: 30px 40px;
     transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-y: auto;
+    overflow-y: hidden;
     background: rgba(10, 14, 26);
     z-index: 15;
 }
 
+.form-panel:has(.register-form:not([style*="none"])) {
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.form-panel:has(.register-form:not([style*="none"]))::-webkit-scrollbar {
+    display: none;
+}
+
 .form-panel.register-mode {
     left: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.form-panel.register-mode::-webkit-scrollbar {
+    display: none;
 }
 
 /* ==========================================================================
-   Form Container — Larger
+   Form Container â€” Larger
    ========================================================================== */
 
 .form-container {
@@ -578,6 +596,7 @@ html, body {
     max-width: 600px;
     position: relative;
     z-index: 1;
+    margin: auto 0;
     animation: formFadeIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
@@ -587,11 +606,11 @@ html, body {
 }
 
 .form-header {
-    margin-bottom: 40px;
+    margin-bottom: 24px;
 }
 
 .form-header h2 {
-    font-size: 2.2rem;
+    font-size: 1.8rem;
     font-weight: 700;
     color: var(--text-main);
     margin-bottom: 8px;
@@ -600,21 +619,21 @@ html, body {
 
 .form-header p {
     color: #64748b;
-    font-size: 1rem;
+    font-size: 0.95rem;
 }
 
 /* ==========================================================================
-   Inputs — Underline Style (Larger)
+   Inputs â€” Underline Style (Larger)
    ========================================================================== */
 
 .input-group {
-    margin-bottom: 28px;
+    margin-bottom: 16px;
     position: relative;
 }
 
 .input-row {
     display: flex;
-    gap: 24px;
+    gap: 16px;
 }
 
 .input-row .input-group {
@@ -623,9 +642,9 @@ html, body {
 
 label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.8px;
@@ -650,9 +669,9 @@ input, select {
     border: none;
     outline: none;
     color: var(--text-main);
-    padding: 14px 0;
+    padding: 10px 0;
     font-family: var(--font);
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     width: 100%;
 }
 
@@ -665,13 +684,22 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active,
+input:-internal-autofill-selected,
+input:-internal-autofill-previewed,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus,
-select:-webkit-autofill:active {
+select:-webkit-autofill:active,
+select:-internal-autofill-selected,
+select:-internal-autofill-previewed {
     -webkit-box-shadow: 0 0 0 1000px var(--bg-panel) inset !important;
-    -webkit-text-fill-color: var(--text-main) !important;
-    caret-color: var(--text-main) !important;
+    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff !important;
+    caret-color: #ffffff !important;
+    background-color: var(--bg-panel) !important;
+    background: var(--bg-panel) !important;
+    background-image: none !important;
+    filter: none !important;
     transition: background-color 5000s ease-in-out 0s !important;
 }
 
@@ -681,7 +709,7 @@ select {
     background: transparent;
     color: var(--text-main);
     font-family: var(--font);
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     border: none;
     outline: none;
 }
@@ -731,15 +759,15 @@ select:focus {
 
 button {
     width: 100%;
-    padding: 16px;
+    padding: 14px;
     border-radius: 50px;
     background: linear-gradient(95deg, #5e6ad2, #7b88ff);
     border: none;
     color: white;
     font-weight: 700;
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     cursor: pointer;
-    margin-top: 16px;
+    margin-top: 10px;
     box-shadow: 0 4px 20px rgba(94, 106, 210, 0.35);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
@@ -777,9 +805,9 @@ button:active {
 
 .switch-link {
     text-align: center;
-    margin-top: 32px;
+    margin-top: 20px;
     color: #64748b;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
 }
 
 .switch-link a {
@@ -816,20 +844,12 @@ button:active {
    ========================================================================== */
 
 .form-panel::-webkit-scrollbar {
-    width: 6px;
+    display: none;
 }
 
-.form-panel::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.form-panel::-webkit-scrollbar-thumb {
-    background: rgba(94, 106, 210, 0.3);
-    border-radius: 3px;
-}
-
-.form-panel::-webkit-scrollbar-thumb:hover {
-    background: rgba(167, 139, 250, 0.5);
+.form-panel {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 /* ==========================================================================
@@ -843,7 +863,48 @@ button:active {
     }
 
     .form-panel {
-        padding: 40px;
+        padding: 30px 40px;
+    }
+
+    .form-header {
+        margin-bottom: 24px;
+    }
+
+    .form-header h2 {
+        font-size: 1.8rem;
+    }
+
+    .form-header p {
+        font-size: 0.9rem;
+    }
+
+    .input-group {
+        margin-bottom: 18px;
+    }
+
+    .input-row {
+        gap: 16px;
+    }
+
+    label {
+        margin-bottom: 6px;
+        font-size: 0.75rem;
+    }
+
+    input, select {
+        padding: 10px 0;
+        font-size: 0.95rem;
+    }
+
+    button {
+        padding: 14px;
+        font-size: 0.95rem;
+        margin-top: 10px;
+    }
+
+    .switch-link {
+        margin-top: 20px;
+        font-size: 0.85rem;
     }
 
     .welcome-inner {
@@ -853,14 +914,29 @@ button:active {
     .brand {
         padding-top: 80px;
     }
+
+    .welcome-text h1 {
+        font-size: 2.8rem;
+    }
+
+    .welcome-text p {
+        font-size: 0.95rem;
+    }
 }
 
 /* Tablet portrait / Large mobile (768px and below) */
 @media (max-width: 768px) {
+    html, body {
+        overflow: auto;
+        height: auto;
+        min-height: 100vh;
+        touch-action: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
     .auth-wrapper {
-        display: flex;
-        flex-direction: column;
-        overflow-y: auto;
+        display: block;
+        overflow-y: visible;
         height: auto;
         min-height: 100vh;
     }
@@ -871,12 +947,12 @@ button:active {
         height: 280px;
         left: 0 !important;
         clip-path: none !important;
-        flex: none;
         align-items: center;
         justify-content: center;
         transition: none;
         border: none !important;
         border-radius: 0 0 24px 24px;
+        z-index: auto;
     }
 
     .welcome-panel::after {
@@ -927,15 +1003,15 @@ button:active {
         position: relative;
         width: 100%;
         left: 0 !important;
-        flex: 1;
-        min-height: auto;
+        height: calc(100vh - 280px);
+        height: calc(100dvh - 280px);
         padding: 40px 24px;
         transition: none;
         border-radius: 24px 24px 0 0;
         margin-top: -20px;
-        z-index: 25;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
+        z-index: auto;
     }
 
     .form-container {

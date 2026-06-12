@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     .from('perfiles')
                     .insert([{ id: data.user.id, nombres, apellidos, tipo_uso: tipoUso }]);
                 if (perfilError) console.error('Error guardando perfil:', perfilError);
-                alert('¡Registro exitoso! Te hemos enviado un correo electrónico de confirmación. Por favor, revisa tu bandeja de entrada y verifica tu cuenta antes de iniciar sesión.');
+                alert('¡Registro exitoso! Ahora puedes iniciar sesión.');
                 fadeTransition(true);
                 document.getElementById('loginUser').value = email;
                 // Limpiar formulario de registro
