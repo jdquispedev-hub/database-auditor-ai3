@@ -987,7 +987,7 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
             
             if (result.success) {
                 // Registrar log de éxito
-                registrarLog(userId, userEmail, 'upload_python', {
+                await registrarLog(userId, userEmail, 'upload_python', {
                     fileName: req.file.originalname,
                     fileSize: req.file.size,
                     fileType: fileExtension
@@ -1028,7 +1028,7 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
             errorOutput += data.toString();
         });
 
-        pythonProcess.on('close', (code) => {
+        pythonProcess.on('close', async (code) => {
             // Eliminar archivo temporal
             fs.unlinkSync(filePath);
 
@@ -1055,7 +1055,7 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
                     };
                     
                     // Registrar log de éxito
-                    registrarLog(userId, userEmail, 'upload_python', {
+                    await registrarLog(userId, userEmail, 'upload_python', {
                         fileName: req.file.originalname,
                         fileSize: req.file.size,
                         fileType: fileExtension
@@ -1288,7 +1288,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         fs.unlinkSync(filePath);
 
         // Registrar log de éxito
-        registrarLog(userId, userEmail, 'upload_ai', {
+        await registrarLog(userId, userEmail, 'upload_ai', {
             fileName: req.file.originalname,
             fileSize: req.file.size,
             fileType: fileExtension
@@ -1361,7 +1361,7 @@ app.post('/generate-data', async (req, res) => {
             errorOutput += data.toString();
         });
 
-        pythonProcess.on('close', (code) => {
+        pythonProcess.on('close', async (code) => {
             if (code !== 0) {
                 console.error('Python data generation error:', errorOutput);
                 return res.status(500).json({
@@ -1373,7 +1373,7 @@ app.post('/generate-data', async (req, res) => {
                 const result = JSON.parse(output);
                 if (result.success) {
                     // Registrar log de éxito
-                    registrarLog(userId, userEmail, 'generate_data', {
+                    await registrarLog(userId, userEmail, 'generate_data', {
                         tables: schema.tables.map(t => t.name)
                     }, req);
 
@@ -1449,7 +1449,7 @@ Responde ÚNICAMENTE con el bloque de código del nuevo esquema. No incluyas exp
         });
 
         // Registrar log de éxito
-        registrarLog(userId, userEmail, 'convert', {
+        await registrarLog(userId, userEmail, 'convert', {
             targetFormat: targetFormat
         }, req);
 
