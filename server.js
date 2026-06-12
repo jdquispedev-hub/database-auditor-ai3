@@ -1331,10 +1331,36 @@ app.post('/generate-data', async (req, res) => {
 
         console.log('Generando datos de prueba...');
 
-        // En Vercel, reenviar a función serverless si aplica
+        // En Vercel, delegar al backend de Python Serverless (/api/analyze_python)
         if (process.env.VERCEL) {
-            // Podría reutilizarse el mismo endpoint serverless con un flag; por ahora, fallback a Node simple
-            return res.status(501).json({ error: 'Generación de datos no disponible en Vercel serverless aún.' });
+            try {
+                const host = req.headers.host || process.env.VERCEL_URL;
+                const protocol = host.includes('localhost') ? 'http' : 'https';
+                const response = await fetch(`${protocol}://${host}/api/analyze_python`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'generate_data',
+                        schema,
+                        config: config || {}
+                    })
+                });
+                
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    return res.status(response.status || 500).json({ error: (result && result.error) || 'Error en la generación de datos de Python' });
+                }
+
+                // Registrar log de éxito
+                await registrarLog(userId, userEmail, 'generate_data', {
+                    tables: schema.tables.map(t => t.name)
+                }, req);
+
+                return res.json(result.data);
+            } catch (err) {
+                console.error('Vercel Python generate-data proxy error:', err);
+                return res.status(500).json({ error: 'Error al conectar con el motor Python en Vercel: ' + err.message });
+            }
         }
 
         const { spawn } = require('child_process');
@@ -1415,9 +1441,40 @@ app.post('/convert', async (req, res) => {
 
         console.log(`Convirtiendo esquema a: ${targetFormat} usando Python...`);
 
-        // En Vercel, reenviar o fallback (por ahora local Node simple)
+        // En Vercel, delegar al backend de Python Serverless (/api/analyze_python)
         if (process.env.VERCEL) {
-            return res.status(501).json({ error: 'Conversión no disponible en Vercel serverless aún.' });
+            try {
+                const host = req.headers.host || process.env.VERCEL_URL;
+                const protocol = host.includes('localhost') ? 'http' : 'https';
+                const response = await fetch(`${protocol}://${host}/api/analyze_python`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'convert',
+                        schema,
+                        targetFormat
+                    })
+                });
+                
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    return res.status(response.status || 500).json({ error: (result && result.error) || 'Error en la conversión de Python' });
+                }
+
+                // Registrar log de éxito
+                await registrarLog(userId, userEmail, 'convert', {
+                    tables: schema.tables.map(t => t.name),
+                    targetFormat
+                }, req);
+
+                return res.json({
+                    success: true,
+                    convertedCode: result.convertedCode
+                });
+            } catch (err) {
+                console.error('Vercel Python convert proxy error:', err);
+                return res.status(500).json({ error: 'Error al conectar con el motor Python en Vercel: ' + err.message });
+            }
         }
 
         const { spawn } = require('child_process');
