@@ -684,13 +684,22 @@ input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus,
 input:-webkit-autofill:active,
+input:-internal-autofill-selected,
+input:-internal-autofill-previewed,
 select:-webkit-autofill,
 select:-webkit-autofill:hover,
 select:-webkit-autofill:focus,
-select:-webkit-autofill:active {
+select:-webkit-autofill:active,
+select:-internal-autofill-selected,
+select:-internal-autofill-previewed {
     -webkit-box-shadow: 0 0 0 1000px var(--bg-panel) inset !important;
-    -webkit-text-fill-color: var(--text-main) !important;
-    caret-color: var(--text-main) !important;
+    -webkit-text-fill-color: #ffffff !important;
+    color: #ffffff !important;
+    caret-color: #ffffff !important;
+    background-color: var(--bg-panel) !important;
+    background: var(--bg-panel) !important;
+    background-image: none !important;
+    filter: none !important;
     transition: background-color 5000s ease-in-out 0s !important;
 }
 
