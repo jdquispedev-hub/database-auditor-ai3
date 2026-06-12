@@ -987,7 +987,7 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
             
             if (result.success) {
                 // Registrar log de éxito
-                registrarLog(userId, userEmail, 'upload_python', {
+                await registrarLog(userId, userEmail, 'upload_python', {
                     fileName: req.file.originalname,
                     fileSize: req.file.size,
                     fileType: fileExtension
@@ -1028,7 +1028,7 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
             errorOutput += data.toString();
         });
 
-        pythonProcess.on('close', (code) => {
+        pythonProcess.on('close', async (code) => {
             // Eliminar archivo temporal
             fs.unlinkSync(filePath);
 
@@ -1055,7 +1055,7 @@ app.post('/analyze-python', upload.single('file'), async (req, res) => {
                     };
                     
                     // Registrar log de éxito
-                    registrarLog(userId, userEmail, 'upload_python', {
+                    await registrarLog(userId, userEmail, 'upload_python', {
                         fileName: req.file.originalname,
                         fileSize: req.file.size,
                         fileType: fileExtension
@@ -1232,7 +1232,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
     try {
         const userId = req.headers['x-user-id'];
         const userEmail = req.headers['x-user-email'];
-        if (!(await verificarUsuario(userId, res, true))) return; // REQUIERE PREMIUM!
+        if (!(await verificarUsuario(userId, res, false))) return; // LIBRE PARA TODOS!
 
         if (!req.file) {
             return res.status(400).json({ error: 'No se ha subido ningún archivo' });
@@ -1288,7 +1288,7 @@ app.post('/upload', upload.single('file'), async (req, res) => {
         fs.unlinkSync(filePath);
 
         // Registrar log de éxito
-        registrarLog(userId, userEmail, 'upload_ai', {
+        await registrarLog(userId, userEmail, 'upload_ai', {
             fileName: req.file.originalname,
             fileSize: req.file.size,
             fileType: fileExtension
@@ -1361,7 +1361,7 @@ app.post('/generate-data', async (req, res) => {
             errorOutput += data.toString();
         });
 
-        pythonProcess.on('close', (code) => {
+        pythonProcess.on('close', async (code) => {
             if (code !== 0) {
                 console.error('Python data generation error:', errorOutput);
                 return res.status(500).json({
@@ -1373,7 +1373,7 @@ app.post('/generate-data', async (req, res) => {
                 const result = JSON.parse(output);
                 if (result.success) {
                     // Registrar log de éxito
-                    registrarLog(userId, userEmail, 'generate_data', {
+                    await registrarLog(userId, userEmail, 'generate_data', {
                         tables: schema.tables.map(t => t.name)
                     }, req);
 
@@ -1405,7 +1405,7 @@ app.post('/convert', async (req, res) => {
     try {
         const userId = req.headers['x-user-id'];
         const userEmail = req.headers['x-user-email'];
-        if (!(await verificarUsuario(userId, res, true))) return; // REQUIERE PREMIUM!
+        if (!(await verificarUsuario(userId, res, false))) return;
 
         const { schema, targetFormat } = req.body;
         
@@ -1413,49 +1413,71 @@ app.post('/convert', async (req, res) => {
             return res.status(400).json({ error: 'Esquema y formato de destino son requeridos' });
         }
 
-        console.log(`Convirtiendo esquema a: ${targetFormat}...`);
+        console.log(`Convirtiendo esquema a: ${targetFormat} usando Python...`);
 
-        const prompt = `
-Actúa como un experto Arquitecto de Datos y Desarrollador Fullstack. 
-Toma el siguiente esquema de base de datos:
+        // En Vercel, reenviar o fallback (por ahora local Node simple)
+        if (process.env.VERCEL) {
+            return res.status(501).json({ error: 'Conversión no disponible en Vercel serverless aún.' });
+        }
 
-${JSON.stringify(schema, null, 2)}
-
-Tu tarea es CONVERTIR este esquema íntegramente al formato: ${targetFormat.toUpperCase()}.
-
-INSTRUCCIONES:
-1. Genera el código completo y válido para el formato solicitado.
-2. Si es POSTGRESQL, usa sintaxis estándar de PostgreSQL:
-   - Usa comillas dobles (") para identificadores o déjalos sin comillas. ¡NUNCA uses comillas invertidas (\`)!
-   - Usa tipos de datos SERIAL, BIGSERIAL o GENERATED ALWAYS AS IDENTITY para campos auto-incrementables. ¡NUNCA uses AUTO_INCREMENT!
-   - Incluye restricciones formales de llaves primarias y foráneas.
-3. Si es MYSQL o MARIADB, usa sintaxis MySQL:
-   - Usa comillas invertidas (\`) para identificadores.
-   - Usa AUTO_INCREMENT para campos auto-incrementables.
-   - Incluye llaves primarias y foráneas con la sintaxis ENGINE=InnoDB.
-4. Si es MongoDB, usa formato de esquema de Mongoose o JSON Schema.
-5. Si es GraphQL, usa el lenguaje de definición de tipos (SDL).
-6. Si es Prisma, usa el formato de archivo schema.prisma.
-7. Mantén los nombres de las entidades y campos lo más parecidos posible.
-8. Agrega comentarios breves explicando decisiones de diseño.
-
-Responde ÚNICAMENTE con el bloque de código del nuevo esquema. No incluyas explicaciones largas fuera del código.
-`;
-
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [{ role: "user", content: prompt }],
-            temperature: 0.3, // Menor temperatura para mayor precisión técnica
+        const { spawn } = require('child_process');
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        
+        const payload = JSON.stringify({ schema, targetFormat });
+        
+        const pythonProcess = spawn(pythonCmd, ['python_analyzer/main.py', '--convert'], {
+            cwd: __dirname,
+            stdio: ['pipe', 'pipe', 'pipe']
         });
 
-        // Registrar log de éxito
-        registrarLog(userId, userEmail, 'convert', {
-            targetFormat: targetFormat
-        }, req);
+        let output = '';
+        let errorOutput = '';
 
-        res.json({
-            success: true,
-            convertedCode: response.choices[0].message.content
+        pythonProcess.stdin.write(payload);
+        pythonProcess.stdin.end();
+
+        pythonProcess.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        pythonProcess.stderr.on('data', (data) => {
+            errorOutput += data.toString();
+        });
+
+        pythonProcess.on('close', async (code) => {
+            if (code !== 0) {
+                console.error('Python conversion error:', errorOutput);
+                return res.status(500).json({
+                    error: 'Error en la conversión con Python: ' + errorOutput
+                });
+            }
+
+            try {
+                const result = JSON.parse(output);
+                if (result.success) {
+                    // Registrar log de éxito
+                    await registrarLog(userId, userEmail, 'convert', {
+                        targetFormat: targetFormat
+                    }, req);
+
+                    res.json({
+                        success: true,
+                        convertedCode: result.convertedCode
+                    });
+                } else {
+                    res.status(400).json({ error: result.error || 'Error en conversión con Python' });
+                }
+            } catch (parseError) {
+                console.error('JSON parse error:', parseError);
+                res.status(500).json({ error: 'Error al procesar resultados del convertidor' });
+            }
+        });
+
+        pythonProcess.on('error', (error) => {
+            console.error('Python process error:', error);
+            res.status(500).json({
+                error: 'Error al ejecutar Python. Asegúrate de tener Python instalado.'
+            });
         });
 
     } catch (error) {

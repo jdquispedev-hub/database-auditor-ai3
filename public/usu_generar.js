@@ -3,7 +3,9 @@ let selectedFile = null;
 let currentResults = null;
 
 const SUPABASE_URL = 'https://xoohircyfzeodoqlgkyy.supabase.co';
+//const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2hpcmN5Znplb2RvcWxna3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MjI2MDYsImV4cCI6MjA5NjE5ODYwNn0.uO3DKRrsXoLJekxIvr_sBTaZ1PKQctKZiqhpsD2NdnE';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2hpcmN5Znplb2RvcWxna3l5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MjI2MDYsImV4cCI6MjA5NjE5ODYwNn0.uO3DKRrsXoLJekxIvr_sBTaZ1PKQctKZiqhpsD2NdnE';
+
 let supabaseClient;
 try {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -213,7 +215,7 @@ function displayFileInfo() {
     analyzeBtn.disabled = false;
     analyzePythonBtn.disabled = false;
     
-    const role = sessionStorage.getItem('ds_role') || 'usuario';
+    const role = 'premium'; // Libre para todos
     if (role === 'usuario') {
         analyzeBtn.innerHTML = '<span class="btn-text">Análisis con IA (Premium)</span>';
         analyzeBtn.style.background = 'linear-gradient(135deg, #444, #555)';
@@ -233,7 +235,7 @@ function removeFile() {
     resetConversionResult();
     hideError();
     
-    const role = sessionStorage.getItem('ds_role') || 'usuario';
+    const role = 'premium'; // Libre para todos
     if (role === 'usuario') {
         analyzeBtn.innerHTML = '<span class="btn-text">Análisis con IA (Premium)</span>';
     } else {
@@ -251,7 +253,7 @@ function formatFileSize(bytes) {
 
 // Análisis de archivo con IA
 async function analyzeFile() {
-    const role = sessionStorage.getItem('ds_role') || 'usuario';
+    const role = 'premium'; // Libre para todos
     if (role === 'usuario') {
         showPremiumUpgradeModal();
         return;
@@ -1011,7 +1013,7 @@ function printDocumentation() {
 
 // Convertidor de Esquemas
 async function convertSchema() {
-    const role = sessionStorage.getItem('ds_role') || 'usuario';
+    const role = 'premium'; // Libre para todos
     if (role === 'usuario') {
         if (currentResults && currentResults.analysisType === 'python') {
             // Permitir conversión local con python
@@ -1092,6 +1094,22 @@ async function convertSchema() {
     // Mostrar cargando
     convertBtn.disabled = true;
     convertBtn.innerHTML = 'Convirtiendo...';
+    if (placeholderText) {
+        placeholderText.innerHTML = `
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+            <div class="loading-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; margin-top: 40px;">
+                <div style="width: 40px; height: 40px; border: 4px solid rgba(255, 107, 107, 0.1); border-top: 4px solid #ff6b6b; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <p style="color: #ff6b6b; font-weight: 500;">Traduciendo esquema con IA, por favor espera...</p>
+            </div>
+        `;
+        placeholderText.style.display = 'block';
+    }
+    convertedCodeEl.style.display = 'none';
     
     try {
         const userId = sessionStorage.getItem('ds_user') || '';
@@ -1126,9 +1144,11 @@ async function convertSchema() {
             }
         } else {
             showError('Error en la conversión: ' + result.error);
+            if (placeholderText) placeholderText.innerHTML = 'Selecciona un formato y presiona Transformar...';
         }
     } catch (error) {
         showError('Error de conexión: ' + error.message);
+        if (placeholderText) placeholderText.innerHTML = 'Selecciona un formato y presiona Transformar...';
     } finally {
         convertBtn.disabled = false;
         convertBtn.innerHTML = 'Transformar Esquema';
@@ -2336,7 +2356,7 @@ function downloadTestData() {
 
 // PREMIUM PAYWALL SYSTEM INTERACTION
 function initPaywallUI() {
-    const role = sessionStorage.getItem('ds_role') || 'usuario';
+    const role = 'premium'; // Libre para todos
     
     // Inject custom premium styles dynamically
     const style = document.createElement('style');
