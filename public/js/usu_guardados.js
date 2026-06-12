@@ -613,7 +613,39 @@ async function renderDocumentosActivos() {
         container.innerHTML = `<div class="seccion-tabla"><h2>📄 Documentos activos</h2><div class="empty-message">No hay documentos guardados.</div></div>`; 
         return; 
     }
-    let html = `<div class="seccion-tabla"><h2>📄 Documentos activos</h2><table class="doc-table"><thead><tr><th>Nombre</th><th>Acceso</th><th>Fecha modificación</th><th>Acciones</th></tr></thead><tbody>`;
+    let html = `
+    <style>
+        .dropdown-item {
+            display: block;
+            padding: 10px 14px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .dropdown-item[disabled] {
+            opacity: 0.4;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+    </style>
+    <div class="seccion-tabla">
+        <h2>📄 Documentos activos</h2>
+        <div class="table-responsive" style="overflow-x: auto; width: 100%;">
+            <table class="doc-table" style="width: 100%; min-width: 600px;">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Acceso</th>
+                        <th>Fecha modificación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+                
     activeDocsList.forEach((doc, idx) => {
         let fechaModStr = 'No disponible';
         if (doc.fecha_mod) {
@@ -622,9 +654,34 @@ async function renderDocumentosActivos() {
                 fechaModStr = dateObj.toLocaleDateString();
             }
         }
-        html += `<tr><td>${escapeHtml(doc.nombre)}</td><td>${escapeHtml(doc.acceso)}</td><td>${fechaModStr}</td><td class="action-buttons"><button class="view-doc" data-idx="${idx}">Ver</button><button class="edit-doc" data-idx="${idx}">Editar</button><button class="share-doc" data-idx="${idx}">Compartir</button><button class="delete-doc" data-idx="${idx}">Eliminar</button></td></tr>`;
+        
+        // Verificar si contiene esquema para habilitar o no las opciones avanzadas
+        const hasSchema = doc.contenido && (typeof doc.contenido === 'string' ? JSON.parse(doc.contenido).schema : doc.contenido.schema);
+        const disabledAttr = hasSchema ? '' : 'disabled style="opacity: 0.4; cursor: not-allowed; pointer-events: none;"';
+        
+        html += `<tr>
+            <td>${escapeHtml(doc.nombre)}</td>
+            <td>${escapeHtml(doc.acceso)}</td>
+            <td>${fechaModStr}</td>
+            <td>
+                <div class="action-buttons" style="display: flex; gap: 8px; align-items: center; white-space: nowrap;">
+                    <button class="view-doc" data-idx="${idx}" style="padding: 6px 12px; border-radius: 8px; font-weight: 500; min-width: 100px;">Ver y Editar</button>
+                    
+                    <select class="actions-select" data-idx="${idx}" style="background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 8px; font-weight: 500; cursor: pointer; outline: none; font-family: 'Outfit', sans-serif;">
+                        <option value="" disabled selected style="background: #151922; color: #9ca3af;">Acciones ▾</option>
+                        <option value="diagram" ${hasSchema ? '' : 'disabled'} style="background: #151922; color: #a78bfa;">Diagrama ER</option>
+                        <option value="schema" ${hasSchema ? '' : 'disabled'} style="background: #151922; color: #60a5fa;">Esquema</option>
+                        <option value="converter" ${hasSchema ? '' : 'disabled'} style="background: #151922; color: #fbbf24;">Convertidor</option>
+                        <option value="testdata" ${hasSchema ? '' : 'disabled'} style="background: #151922; color: #f43f5e;">Datos Prueba</option>
+                        <option value="edit" style="background: #151922; color: #eef2ff;">Editar Nombre</option>
+                        <option value="share" style="background: #151922; color: #34d399;">Compartir</option>
+                        <option value="delete" style="background: #151922; color: #f87171;">Eliminar</option>
+                    </select>
+                </div>
+            </td>
+        </tr>`;
     });
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div></div>`;
     container.innerHTML = html;
 
     document.querySelectorAll('.view-doc').forEach(btn => btn.addEventListener('click', () => {
@@ -633,52 +690,71 @@ async function renderDocumentosActivos() {
         abrirModalVisualizador(doc);
     }));
 
-    document.querySelectorAll('.edit-doc').forEach(btn => btn.addEventListener('click', async () => {
-        const idx = parseInt(btn.dataset.idx);
-        const doc = activeDocsList[idx];
-        const nuevo = prompt('Nuevo nombre:', doc.nombre);
-        if (nuevo) {
-            await supabaseClient.from('documentos').update({ nombre: nuevo.trim() }).eq('id', doc.id);
-            
-            // Registrar log de renombrar
-            try {
-                await fetch('/api/logs', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        usuarioId: userId,
-                        usuarioEmail: sessionStorage.getItem('ds_email') || '',
-                        accion: 'renombrar_documento',
-                        detalles: {
-                            documentoId: doc.id,
-                            nombreAnterior: doc.nombre,
-                            nombreNuevo: nuevo.trim()
+    document.querySelectorAll('.actions-select').forEach(select => {
+        select.addEventListener('change', async (e) => {
+            const action = e.target.value;
+            const idx = parseInt(select.dataset.idx);
+            const doc = activeDocsList[idx];
+            if (!action) return;
+
+            // Restablecer el select al placeholder
+            select.value = "";
+
+            switch (action) {
+                case 'diagram':
+                    abrirModalDiagrama(doc);
+                    break;
+                case 'schema':
+                    abrirModalEsquema(doc);
+                    break;
+                case 'converter':
+                    abrirModalConvertidor(doc);
+                    break;
+                case 'testdata':
+                    abrirModalDatosPrueba(doc);
+                    break;
+                case 'edit':
+                    const nuevo = prompt('Nuevo nombre:', doc.nombre);
+                    if (nuevo) {
+                        await supabaseClient.from('documentos').update({ nombre: nuevo.trim() }).eq('id', doc.id);
+                        
+                        // Registrar log de renombrar
+                        try {
+                            await fetch('/api/logs', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    usuarioId: userId,
+                                    usuarioEmail: sessionStorage.getItem('ds_email') || '',
+                                    accion: 'renombrar_documento',
+                                    detalles: {
+                                        documentoId: doc.id,
+                                        nombreAnterior: doc.nombre,
+                                        nombreNuevo: nuevo.trim()
+                                    }
+                                })
+                            });
+                        } catch (logErr) {
+                            console.error('Error registrando log de renombrar:', logErr);
                         }
-                    })
-                });
-            } catch (logErr) {
-                console.error('Error registrando log de renombrar:', logErr);
+
+                        renderTodo();
+                    }
+                    break;
+                case 'share':
+                    mostrarModalCompartir(doc);
+                    break;
+                case 'delete':
+                    if (confirm(`¿Mover "${doc.nombre}" a la papelera?`)) {
+                        await moverAPapelera(doc.id, doc.nombre, doc.acceso, doc.contenido);
+                        renderTodo();
+                    }
+                    break;
             }
-
-            renderTodo();
-        }
-    }));
-
-    document.querySelectorAll('.share-doc').forEach(btn => btn.addEventListener('click', () => {
-        const idx = parseInt(btn.dataset.idx);
-        const doc = activeDocsList[idx];
-        mostrarModalCompartir(doc);
-    }));
-
-    document.querySelectorAll('.delete-doc').forEach(btn => btn.addEventListener('click', async () => {
-        const idx = parseInt(btn.dataset.idx);
-        const doc = activeDocsList[idx];
-        if (confirm(`¿Mover "${doc.nombre}" a la papelera?`)) {
-            await moverAPapelera(doc.id, doc.nombre, doc.acceso, doc.contenido);
-            renderTodo();
-        }
-    }));
+        });
+    });
 }
+
 
 async function renderPapelera() {
     await limpiarPapelera();
@@ -946,3 +1022,545 @@ async function mostrarModalCompartir(doc) {
 }
 
 renderTodo();
+
+// ==========================================
+// NUEVAS FUNCIONES PARA LOS BOTONES DE ACCIÓN ADICIONALES (OPCIÓN B)
+// ==========================================
+
+async function abrirModalDiagrama(doc) {
+    let contenido = doc.contenido || {};
+    if (typeof contenido === 'string') {
+        try { contenido = JSON.parse(contenido); } catch (e) { contenido = {}; }
+    }
+    
+    const docName = doc.nombre;
+    const schema = contenido.schema;
+    const modalBody = document.getElementById('modalBody');
+    document.getElementById('docModal').style.display = 'flex';
+    
+    if (!schema || !schema.tables || schema.tables.length === 0) {
+        modalBody.innerHTML = `
+            <div class="diagram-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; padding: 20px;">
+                <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 15px;">📊 Diagrama ER: ${escapeHtml(docName)}</h3>
+                <p style="color: #f87171;">Este documento no contiene información de esquema para generar un diagrama.</p>
+            </div>
+        `;
+        return;
+    }
+
+    modalBody.innerHTML = `
+        <div class="diagram-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; height: 100%;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; flex-shrink: 0;">
+                <h3 style="font-size: 1.4rem; color: #a78bfa; margin: 0;">📊 Diagrama ER: ${escapeHtml(docName)}</h3>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <div class="zoom-controls" style="display: flex; align-items: center; gap: 10px;">
+                        <label for="modalDiagramZoom" style="font-size: 0.9rem;">Zoom:</label>
+                        <input type="range" id="modalDiagramZoom" min="0.5" max="2" step="0.1" value="1" style="cursor: pointer;">
+                        <span id="modalZoomValue" style="font-size: 0.9rem; min-width: 45px;">100%</span>
+                    </div>
+                    <button id="btnDownloadModalDiagram" class="action-btn" style="background: linear-gradient(135deg, #a78bfa, #5e6ad2); color: #fff; border: none; padding: 8px 16px; border-radius: 20px; font-weight: 600; cursor: pointer;">
+                        Descargar SVG
+                    </button>
+                </div>
+            </div>
+            
+            <div class="diagram-container" style="flex: 1; overflow: auto; background: #0c0e12; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15); display: flex; align-items: center; justify-content: center; padding: 20px; min-height: 400px; max-height: calc(95vh - 150px);">
+                <div id="modalMermaidDiagram" class="mermaid" style="transition: transform 0.2s; transform-origin: center center;"></div>
+            </div>
+        </div>
+    `;
+
+    // Generar sintaxis de Mermaid
+    let mermaidCode = 'erDiagram\n';
+    schema.tables.forEach(table => {
+        const cleanTableName = table.name.replace(/\s+/g, '_');
+        mermaidCode += `    ${cleanTableName} {\n`;
+        table.columns.forEach(col => {
+            const type = col.type.split('(')[0].replace(/\s+/g, '_');
+            const name = col.name.replace(/\s+/g, '_');
+            const pk = col.primaryKey ? 'PK' : '';
+            mermaidCode += `        ${type} ${name} ${pk}\n`;
+        });
+        mermaidCode += `    }\n`;
+    });
+
+    if (schema.relations && schema.relations.length > 0) {
+        schema.relations.forEach(rel => {
+            const from = rel.from.replace(/\s+/g, '_');
+            const to = rel.to.replace(/\s+/g, '_');
+            mermaidCode += `    ${from} ||--o{ ${to} : "relaciona"\n`;
+        });
+    }
+
+    try {
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'dark',
+            themeVariables: {
+                background: '#0c0e12',
+                primaryColor: '#0c0e12',
+                lineColor: '#ffffff',
+                textColor: '#ffffff'
+            }
+        });
+        const id = 'mermaid-modal-' + Date.now();
+        const { svg } = await mermaid.render(id, mermaidCode);
+        const diagDiv = document.getElementById('modalMermaidDiagram');
+        if (diagDiv) diagDiv.innerHTML = svg;
+    } catch (error) {
+        console.error('Error rendering mermaid inside modal:', error);
+        const diagDiv = document.getElementById('modalMermaidDiagram');
+        if (diagDiv) diagDiv.innerHTML = '<p class="error-text" style="color: #f87171;">Error al generar el diagrama visual.</p>';
+    }
+
+    // Zoom Event
+    const zoomInput = document.getElementById('modalDiagramZoom');
+    const zoomVal = document.getElementById('modalZoomValue');
+    const svgEl = document.querySelector('#modalMermaidDiagram svg');
+    if (zoomInput && zoomVal) {
+        zoomInput.addEventListener('input', (event) => {
+            const scale = event.target.value;
+            zoomVal.textContent = `${Math.round(scale * 100)}%`;
+            if (svgEl) {
+                svgEl.style.transform = `scale(${scale})`;
+            }
+        });
+    }
+
+    // Download Event
+    document.getElementById('btnDownloadModalDiagram').onclick = () => {
+        const svgElement = document.querySelector('#modalMermaidDiagram svg');
+        if (!svgElement) return;
+        const svgData = new XMLSerializer().serializeToString(svgElement);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `diagrama_${docName}.svg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+}
+
+function abrirModalEsquema(doc) {
+    let contenido = doc.contenido || {};
+    if (typeof contenido === 'string') {
+        try { contenido = JSON.parse(contenido); } catch (e) { contenido = {}; }
+    }
+    
+    const docName = doc.nombre;
+    const schema = contenido.schema;
+    const modalBody = document.getElementById('modalBody');
+    document.getElementById('docModal').style.display = 'flex';
+    
+    if (!schema || !schema.tables || schema.tables.length === 0) {
+        modalBody.innerHTML = `
+            <div class="schema-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; padding: 20px;">
+                <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 15px;">🗂️ Esquema Bruto: ${escapeHtml(docName)}</h3>
+                <p style="color: #f87171;">Este documento no contiene información de esquema.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const totalColumns = schema.tables.reduce((total, table) => total + table.columns.length, 0);
+    const totalRelations = schema.relations ? schema.relations.length : 0;
+
+    const statsHtml = `
+        <div class="schema-stats" style="display: flex; gap: 20px; margin-bottom: 24px;">
+            <div class="stat-card" style="flex: 1; padding: 20px;">
+                <h4>Tablas Encontradas</h4>
+                <p style="font-size: 2rem; font-weight: 700; color: #a78bfa; margin-top: 5px;">${schema.tables.length}</p>
+            </div>
+            <div class="stat-card" style="flex: 1; padding: 20px;">
+                <h4>Relaciones Inferidas</h4>
+                <p style="font-size: 2rem; font-weight: 700; color: #a78bfa; margin-top: 5px;">${totalRelations}</p>
+            </div>
+            <div class="stat-card" style="flex: 1; padding: 20px;">
+                <h4>Columnas Totales</h4>
+                <p style="font-size: 2rem; font-weight: 700; color: #a78bfa; margin-top: 5px;">${totalColumns}</p>
+            </div>
+        </div>
+    `;
+
+    const tablesHtml = schema.tables.map(table => `
+        <div class="table-card" style="margin-bottom: 20px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px;">
+            <div class="table-name" style="font-size: 1.1rem; font-weight: 600; color: #a78bfa; display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="3" y1="9" x2="21" y2="9"></line>
+                    <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+                ${escapeHtml(table.name)}
+            </div>
+            <div class="table-columns" style="display: flex; flex-direction: column; gap: 8px;">
+                ${table.columns.map(column => `
+                    <div class="column-item" style="display: grid; grid-template-columns: 2fr 1.5fr auto; gap: 12px; padding: 10px 12px; background: rgba(255,255,255,0.03); border-radius: 8px; align-items: center;">
+                        <span class="column-name" style="font-weight: 500; font-size: 0.95rem; color: #eef2ff;">${escapeHtml(column.name)}</span>
+                        <span class="column-type" style="font-size: 0.9rem; color: #9ca3af; font-family: monospace;">${escapeHtml(column.type)}</span>
+                        <div class="badges-wrapper" style="display: flex; gap: 6px;">
+                            ${column.primaryKey ? '<span class="column-badge badge-primary" style="background: rgba(157, 78, 221, 0.2); color: #e0aaff; border-radius: 12px; padding: 2px 8px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px;">PK</span>' : ''}
+                            ${!column.nullable ? '<span class="column-badge badge-nullable" style="background: rgba(255, 167, 38, 0.2); color: #ffcc80; border-radius: 12px; padding: 2px 8px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px;">NOT NULL</span>' : ''}
+                            ${column.autoIncrement ? '<span class="column-badge badge-auto" style="background: rgba(76, 175, 80, 0.2); color: #a5d6a7; border-radius: 12px; padding: 2px 8px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px;">AUTO</span>' : ''}
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    `).join('');
+
+    modalBody.innerHTML = `
+        <div class="schema-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; padding: 10px; overflow-y: auto; max-height: calc(95vh - 80px);">
+            <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 20px;">🗂️ Esquema Bruto: ${escapeHtml(docName)}</h3>
+            ${statsHtml}
+            <div class="tables-container" style="display: flex; flex-direction: column; gap: 16px;">
+                ${tablesHtml}
+            </div>
+        </div>
+    `;
+}
+
+function abrirModalConvertidor(doc) {
+    let contenido = doc.contenido || {};
+    if (typeof contenido === 'string') {
+        try { contenido = JSON.parse(contenido); } catch (e) { contenido = {}; }
+    }
+    
+    const docName = doc.nombre;
+    const schema = contenido.schema;
+    const modalBody = document.getElementById('modalBody');
+    document.getElementById('docModal').style.display = 'flex';
+    
+    if (!schema || !schema.tables || schema.tables.length === 0) {
+        modalBody.innerHTML = `
+            <div class="converter-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; padding: 20px;">
+                <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 15px;">🔄 Convertidor: ${escapeHtml(docName)}</h3>
+                <p style="color: #f87171;">Este documento no contiene información de esquema para convertir.</p>
+            </div>
+        `;
+        return;
+    }
+
+    modalBody.innerHTML = `
+        <div class="converter-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; height: 100%;">
+            <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 15px; flex-shrink: 0;">🔄 Convertidor: ${escapeHtml(docName)}</h3>
+            
+            <div class="converter-controls" style="display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin-bottom: 15px; flex-wrap: wrap; flex-shrink: 0;">
+                <label for="modalTargetFormat" style="font-size: 0.95rem;">Convertir esquema a:</label>
+                <select id="modalTargetFormat" class="share-select" style="width: auto; min-width: 200px;">
+                    <option value="" disabled selected>Seleccionar formato...</option>
+                    <option value="mysql">SQL (MySQL)</option>
+                    <option value="postgresql">SQL (PostgreSQL)</option>
+                    <option value="mariadb">MariaDB</option>
+                    <option value="mongodb">MongoDB (Mongoose)</option>
+                    <option value="prisma">Prisma Schema</option>
+                    <option value="graphql">GraphQL Type Defs</option>
+                    <option value="json_schema">JSON Schema</option>
+                </select>
+                
+                <button id="modalConvertBtn" class="share-submit-btn" style="background: linear-gradient(135deg, #a78bfa, #5e6ad2); margin: 0; padding: 10px 20px;">
+                    Transformar Esquema
+                </button>
+                
+                <button id="modalDownloadConvertedBtn" class="action-btn" style="background: #10b981; border: none; color: #fff; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer;" disabled>
+                    Descargar Archivo
+                </button>
+            </div>
+            
+            <div class="conversion-result" style="flex: 1; background: #0c0e12; border-radius: 12px; border: 1px solid rgba(255,255,255,0.15); padding: 20px; overflow: auto; min-height: 300px; max-height: calc(95vh - 200px);">
+                <p id="modalConvertPlaceholder" style="color: #9ca3af; text-align: center; margin-top: 50px;">Selecciona un formato y presiona Transformar...</p>
+                <pre id="modalConvertedCode" style="display: none; color: #34d399; font-family: monospace; font-size: 0.9rem; line-height: 1.5; white-space: pre-wrap; margin: 0;"></pre>
+            </div>
+        </div>
+    `;
+
+    const selectEl = document.getElementById('modalTargetFormat');
+    const convertBtn = document.getElementById('modalConvertBtn');
+    const downloadBtn = document.getElementById('modalDownloadConvertedBtn');
+    const codeEl = document.getElementById('modalConvertedCode');
+    const placeholder = document.getElementById('modalConvertPlaceholder');
+
+    let convertedCode = '';
+
+    convertBtn.onclick = async () => {
+        const targetFormat = selectEl.value;
+        if (!targetFormat) return;
+
+        convertBtn.disabled = true;
+        convertBtn.innerHTML = 'Convirtiendo...';
+        
+        // Mostrar animación de carga
+        placeholder.innerHTML = `
+            <style>
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            </style>
+            <div class="loading-spinner" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px; margin-top: 40px;">
+                <div style="width: 40px; height: 40px; border: 4px solid rgba(167, 139, 250, 0.1); border-top: 4px solid #a78bfa; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <p style="color: #a78bfa; font-weight: 500;">Procesando esquema con IA, por favor espera...</p>
+            </div>
+        `;
+        placeholder.style.display = 'block';
+        codeEl.style.display = 'none';
+        downloadBtn.disabled = true;
+
+        try {
+            const response = await fetch('/convert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-user-id': userId,
+                    'x-user-email': sessionStorage.getItem('ds_email') || ''
+                },
+                body: JSON.stringify({ schema, targetFormat })
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                convertedCode = result.convertedCode || '';
+                convertedCode = convertedCode.replace(/```[\w]*\n?/g, '').replace(/```/g, '');
+                
+                codeEl.textContent = convertedCode;
+                codeEl.style.display = 'block';
+                placeholder.style.display = 'none';
+                downloadBtn.disabled = false;
+            } else {
+                alert('Error en la conversión: ' + result.error);
+                placeholder.innerHTML = 'Selecciona un formato y presiona Transformar...';
+            }
+        } catch (error) {
+            alert('Error de conexión: ' + error.message);
+            placeholder.innerHTML = 'Selecciona un formato y presiona Transformar...';
+        } finally {
+            convertBtn.disabled = false;
+            convertBtn.innerHTML = 'Transformar Esquema';
+        }
+    };
+
+    downloadBtn.onclick = () => {
+        if (!convertedCode) return;
+        const targetFormat = selectEl.value;
+        let extension = 'txt';
+        switch (targetFormat) {
+            case 'sql':
+            case 'mysql':
+            case 'mariadb':
+            case 'postgresql':
+                extension = 'sql';
+                break;
+            case 'mongodb':
+                extension = 'js';
+                break;
+            case 'prisma':
+                extension = 'prisma';
+                break;
+            case 'graphql':
+                extension = 'graphql';
+                break;
+            case 'json_schema':
+                extension = 'json';
+                break;
+        }
+
+        const blob = new Blob([convertedCode], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `esquema_convertido_${Date.now()}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+}
+
+function abrirModalDatosPrueba(doc) {
+    let contenido = doc.contenido || {};
+    if (typeof contenido === 'string') {
+        try { contenido = JSON.parse(contenido); } catch (e) { contenido = {}; }
+    }
+    
+    const docName = doc.nombre;
+    const schema = contenido.schema;
+    const modalBody = document.getElementById('modalBody');
+    document.getElementById('docModal').style.display = 'flex';
+    
+    if (!schema || !schema.tables || schema.tables.length === 0) {
+        modalBody.innerHTML = `
+            <div class="testdata-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; padding: 20px;">
+                <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 15px;">💾 Generador de Datos: ${escapeHtml(docName)}</h3>
+                <p style="color: #f87171;">Este documento no contiene información de esquema para generar datos de prueba.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const tables = schema.tables;
+    const required = getRequiredTables(schema);
+    const dialect = getDialectFromSchema(schema);
+    const isNoSql = dialect === 'json' || schema.type === 'nosql' || schema.type === 'json' || schema.type === 'yaml' || schema.type === 'excel';
+    let lastGeneratedDialect = isNoSql ? 'json' : 'sql';
+
+    let listHtml = '';
+    tables.forEach((table, idx) => {
+        const tname = table.name;
+        const isRequired = required.has(tname);
+        listHtml += `
+            <div style="display:flex; align-items:center; gap:12px; padding:10px 12px; background:rgba(255,255,255,0.03); border-radius:10px; margin-bottom:8px; flex-wrap:wrap; border:1px solid rgba(255,255,255,0.05);">
+                <input type="checkbox" id="modal-td-check-${idx}" ${isRequired ? 'checked disabled' : 'checked'} 
+                    style="width:18px; height:18px; accent-color:#a78bfa; cursor:pointer;">
+                <label for="modal-td-check-${idx}" style="flex:1; min-width:120px; font-weight:500; cursor:${isRequired ? 'default' : 'pointer'};">
+                    ${escapeHtml(tname)}
+                    ${isRequired ? '<span style="background:rgba(167,139,250,0.15); color:#c084fc; border:1px solid rgba(167,139,250,0.3); padding:2px 8px; border-radius:12px; font-size:0.75rem; margin-left:6px;">REQUERIDA</span>' : ''}
+                </label>
+                <div style="display:flex; align-items:center; gap:8px; color:#9ca3af; font-size:0.9rem;">
+                    <span>Filas:</span>
+                    <input type="number" id="modal-td-rows-${idx}" min="1" max="20" value="5" 
+                        style="width:64px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.15); color:#fff; padding:6px 10px; border-radius:8px; outline:none;">
+                </div>
+            </div>
+        `;
+    });
+
+    modalBody.innerHTML = `
+        <div class="testdata-tab-view" style="color: #fff; font-family: 'Outfit', sans-serif; display: flex; flex-direction: column; height: 100%;">
+            <h3 style="font-size: 1.4rem; color: #a78bfa; margin-bottom: 15px; flex-shrink: 0;">💾 Generador de Datos: ${escapeHtml(docName)}</h3>
+            
+            <div style="background:rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 15px; border-radius: 12px; margin-bottom: 15px; flex-shrink: 0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                <div>
+                    <strong>Dialecto del esquema:</strong> 
+                    <span style="color:#a78bfa; text-transform:uppercase;">${isNoSql ? 'NoSQL / JSON' : (schema.dialect || 'genérico')}</span>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <button id="modalQuickGenerateBtn" class="share-submit-btn" style="background: linear-gradient(135deg, #a78bfa, #5e6ad2); margin:0; padding:10px 20px; display:inline-flex; align-items:center; gap:6px;">
+                        Generar INSERTs
+                    </button>
+                    <button id="modalDownloadTestDataBtn" class="action-btn" style="background:#10b981; color:#fff; border:none; padding:10px 20px; border-radius:10px; font-weight:600; cursor:pointer;" disabled>
+                        Descargar
+                    </button>
+                </div>
+            </div>
+            
+            <div style="display:flex; gap:15px; flex:1; min-height:0; overflow:hidden;">
+                <!-- Config List -->
+                <div style="width: 320px; background:rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.08); border-radius:12px; padding:15px; display:flex; flex-direction:column;">
+                    <h4 style="color:#a78bfa; margin-bottom:10px;">Configurar tablas</h4>
+                    <div style="flex:1; overflow-y:auto; padding-right:5px;">
+                        ${listHtml}
+                    </div>
+                </div>
+                
+                <!-- Preview area -->
+                <div style="flex:1; background:#0c0e12; border-radius:12px; border:1px solid rgba(255,255,255,0.15); display:flex; flex-direction:column; overflow:hidden;">
+                    <div style="padding:10px 15px; border-bottom:1px solid rgba(255,255,255,0.1); background:rgba(0,0,0,0.2);">
+                        <span style="color:#a78bfa; font-weight:600; font-size:0.9rem;">Vista previa del script generado</span>
+                    </div>
+                    <div style="flex:1; overflow:auto; padding:15px;">
+                        <p id="modalTestdataPlaceholder" style="color:#9ca3af; text-align:center; margin-top:50px;">Presiona "Generar INSERTs" para ver los datos generados...</p>
+                        <pre id="modalTestdataCode" style="display:none; color:#34d399; font-family:monospace; font-size:0.9rem; line-height:1.5; white-space:pre-wrap; margin:0;"></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    const generateBtn = document.getElementById('modalQuickGenerateBtn');
+    const downloadBtn = document.getElementById('modalDownloadTestDataBtn');
+    const codeEl = document.getElementById('modalTestdataCode');
+    const placeholder = document.getElementById('modalTestdataPlaceholder');
+
+    let generatedScript = '';
+
+    generateBtn.onclick = async () => {
+        const configTables = {};
+        tables.forEach((table, idx) => {
+            const tname = table.name;
+            const checkbox = document.getElementById(`modal-td-check-${idx}`);
+            const rowsInput = document.getElementById(`modal-td-rows-${idx}`);
+            const enabled = checkbox ? checkbox.checked : true;
+            const rows = rowsInput ? Math.min(parseInt(rowsInput.value) || 5, 20) : 5;
+            configTables[tname] = {
+                enabled: enabled || required.has(tname),
+                rows: rows
+            };
+        });
+
+        const config = {
+            maxRows: 5,
+            tables: configTables
+        };
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = 'Generando...';
+
+        try {
+            const response = await fetch('/generate-data', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-user-id': userId,
+                    'x-user-email': sessionStorage.getItem('ds_email') || ''
+                },
+                body: JSON.stringify({ schema, config })
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.sqlScript) {
+                generatedScript = result.sqlScript;
+                codeEl.textContent = generatedScript;
+                codeEl.style.display = 'block';
+                placeholder.style.display = 'none';
+                downloadBtn.disabled = false;
+            } else {
+                alert(result.error || 'No se pudo generar el script de datos de prueba.');
+            }
+        } catch (error) {
+            alert('Error de conexión: ' + error.message);
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = 'Generar INSERTs';
+        }
+    };
+
+    downloadBtn.onclick = () => {
+        if (!generatedScript) return;
+        const extension = lastGeneratedDialect === 'json' ? 'js' : 'sql';
+        const blob = new Blob([generatedScript], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `datos_prueba_${Date.now()}.${extension}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+}
+
+function getRequiredTables(schema) {
+    const required = new Set();
+    const tables = schema.tables || [];
+    tables.forEach(t => {
+        const fks = t.foreignKeys || [];
+        fks.forEach(fk => {
+            const refTable = fk.referencesTable || (fk.references && fk.references.table) || '';
+            if (refTable) required.add(refTable);
+        });
+    });
+    return required;
+}
+
+function getDialectFromSchema(schema) {
+    if (!schema) return 'mysql';
+    if (schema.dialect) return schema.dialect.toLowerCase();
+    if (schema.type) return schema.type.toLowerCase();
+    return 'mysql';
+}
+
+renderTodo();

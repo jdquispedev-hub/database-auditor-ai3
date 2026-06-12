@@ -203,7 +203,50 @@ def main():
     parser = argparse.ArgumentParser(description='Analizador de Bases de Datos con Python')
     parser.add_argument('--file', help='Ruta del archivo a analizar')
     parser.add_argument('--generate-data', action='store_true', help='Modo generador de datos de prueba')
+    parser.add_argument('--convert', action='store_true', help='Modo convertidor de esquemas')
     args = parser.parse_args()
+    
+    # Modo convertidor de esquemas
+    if args.convert:
+        try:
+            input_data = sys.stdin.read()
+            payload = json.loads(input_data)
+            schema = payload.get('schema', {})
+            target_format = payload.get('targetFormat', '').lower()
+            
+            converter = SchemaConverter()
+            result = converter.generate_conversions(schema)
+            
+            if 'error' in result:
+                raise Exception(result['error'])
+                
+            formats = result.get('formats', {})
+            fmt = target_format
+            if fmt == 'postgresql':
+                fmt = 'postgres'
+            elif fmt == 'json_schema':
+                fmt = 'json_schema'
+                
+            converted_code = formats.get(fmt)
+            if not converted_code:
+                converted_code = formats.get(target_format)
+                
+            if not converted_code:
+                raise Exception(f"Formato no soportado en Python: {target_format}")
+                
+            if isinstance(converted_code, dict):
+                converted_code = json.dumps(converted_code, indent=2, ensure_ascii=False)
+                
+            print(json.dumps({
+                'success': True,
+                'convertedCode': converted_code
+            }, indent=2, ensure_ascii=False))
+        except Exception as e:
+            print(json.dumps({
+                'success': False,
+                'error': str(e)
+            }, indent=2, ensure_ascii=False))
+        return
     
     # Modo generador de datos de prueba
     if args.generate_data:
