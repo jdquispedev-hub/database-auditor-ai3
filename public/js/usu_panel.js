@@ -45,12 +45,32 @@ async function cargarDocumentos() {
     }
 }
 
+async function cargarCompartidosCount() {
+    if (!isUuid(userId)) return 0;
+    try {
+        const { count, error } = await supabaseClient
+            .from('compartidos')
+            .select('*', { count: 'exact', head: true })
+            .eq('usuario_compartido_id', userId);
+        if (error) {
+            console.error('Error cargando compartidos:', error);
+            return 0;
+        }
+        return count || 0;
+    } catch (e) {
+        console.error('Error en cargarCompartidosCount:', e);
+        return 0;
+    }
+}
+
 async function actualizarDashboard() {
     let docs = [];
+    let compartidosCount = 0;
     try {
         docs = await cargarDocumentos();
+        compartidosCount = await cargarCompartidosCount();
     } catch (e) {
-        console.error("Error cargando documentos:", e);
+        console.error("Error cargando datos del dashboard:", e);
     }
     const total = docs ? docs.length : 0;
     let antiguedad = 0;
@@ -66,6 +86,10 @@ async function actualizarDashboard() {
     try {
         document.getElementById('totalDocs').innerText = total;
         document.getElementById('antiguedad').innerText = antiguedad;
+        const compartidosEl = document.getElementById('totalCompartidos');
+        if (compartidosEl) {
+            compartidosEl.innerText = compartidosCount;
+        }
     } catch (e) {
         console.error("Error actualizando elementos DOM:", e);
     }
@@ -73,26 +97,43 @@ async function actualizarDashboard() {
     let labels = [];
     let dataPoints = [];
 
-    if (total > 0) {
-        // Ordenar documentos por fecha de creación ascendente
-        const sortedDocs = [...docs].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-        // Tomar los últimos 10 para mantener el gráfico limpio
-        const recentDocs = sortedDocs.slice(-10);
+    // Generar etiquetas de los últimos 7 días para un gráfico de actividad diaria real
+    const hoy = new Date();
+    const ultimosDias = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - i);
+        const dia = String(d.getDate()).padStart(2, '0');
+        const mes = String(d.getMonth() + 1).padStart(2, '0');
+        ultimosDias.push({
+            dateStr: `${dia}/${mes}`,
+            dateKey: `${d.getFullYear()}-${mes}-${dia}`,
+            count: 0,
+            docs: []
+        });
+    }
 
-        labels = recentDocs.map(doc => {
-            const d = new Date(doc.created_at);
-            const dia = String(d.getDate()).padStart(2, '0');
-            const mes = String(d.getMonth() + 1).padStart(2, '0');
-            const horas = String(d.getHours()).padStart(2, '0');
-            const mins = String(d.getMinutes()).padStart(2, '0');
-            return `${dia}/${mes} ${horas}:${mins}`;
+    if (total > 0) {
+        docs.forEach(doc => {
+            if (!doc.created_at) return;
+            const fechaDoc = new Date(doc.created_at);
+            const dia = String(fechaDoc.getDate()).padStart(2, '0');
+            const mes = String(fechaDoc.getMonth() + 1).padStart(2, '0');
+            const key = `${fechaDoc.getFullYear()}-${mes}-${dia}`;
+            
+            const diaMatch = ultimosDias.find(d => d.dateKey === key);
+            if (diaMatch) {
+                diaMatch.count++;
+                diaMatch.docs.push(doc.nombre || 'Sin nombre');
+            }
         });
 
-        dataPoints = recentDocs.map((_, idx) => idx + 1);
+        labels = ultimosDias.map(d => d.dateStr);
+        dataPoints = ultimosDias.map(d => d.count);
     } else {
-        // Hermoso fallback interactivo con actividad simulada realista para que el gráfico NUNCA esté vacío
-        labels = ['14:00', '15:15', '16:30', '17:45', '19:00', '20:01'];
-        dataPoints = [1, 3, 2, 5, 4, 6];
+        // Fallback si no hay ningún documento
+        labels = ultimosDias.map(d => d.dateStr);
+        dataPoints = ultimosDias.map(() => 0);
     }
 
     try {
@@ -120,7 +161,7 @@ async function actualizarDashboard() {
             data: {
                 labels: labels,
                 datasets: [{
-                    label: 'Historial de Documentos',
+                    label: 'Documentos Creados',
                     data: dataPoints,
                     borderColor: borderColor,
                     backgroundColor: gradient,
@@ -142,13 +183,38 @@ async function actualizarDashboard() {
                             color: '#cbd5e1',
                             font: { family: 'Outfit' }
                         }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const index = context.dataIndex;
+                                const count = context.raw;
+                                const dayDocs = ultimosDias[index]?.docs || [];
+                                if (count === 0) {
+                                    return 'Sin documentos creados';
+                                }
+                                let label = `${count} ${count === 1 ? 'documento' : 'documentos'}:`;
+                                return [label].concat(dayDocs.map(name => ` • ${name}`));
+                            }
+                        }
                     }
                 },
                 scales: {
                     y: {
+                        title: {
+                            display: true,
+                            text: 'Cantidad de documentos',
+                            color: '#cbd5e1',
+                            font: { family: 'Outfit', size: 12 }
+                        },
                         beginAtZero: true,
                         grid: { color: gridColor },
-                        ticks: { color: '#9ca3af', font: { family: 'Outfit' } }
+                        ticks: {
+                            color: '#9ca3af',
+                            font: { family: 'Outfit' },
+                            stepSize: 1,
+                            precision: 0
+                        }
                     },
                     x: {
                         grid: { display: false },

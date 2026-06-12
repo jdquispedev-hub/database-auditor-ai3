@@ -217,7 +217,9 @@ app.get('/api/admin/users', async (req, res) => {
         // Obtener todos los usuarios de Auth para emparejar sus correos electrónicos
         const emailMap = {};
         try {
-            const { data: authData, error: authUsersErr } = await supabase.auth.admin.listUsers();
+            const { data: authData, error: authUsersErr } = await supabase.auth.admin.listUsers({
+                perPage: 1000
+            });
             if (!authUsersErr && authData && authData.users) {
                 authData.users.forEach(u => {
                     emailMap[u.id] = u.email;
