@@ -12,50 +12,225 @@
     </script>
 </head>
 <body>
-    <div class="container">
-        <div class="card" id="cardContainer">
-            <div class="logo-header">
-                <h1>DataScript AI</h1>
-                <p>Convierte tus bases de datos en documentos profesionales</p>
+    <!-- ============================ BACKGROUND LAYERS ============================ -->
+    <div class="bg-layer"></div>
+    <div class="bg-grid"></div>
+    <div class="bg-particles"></div>
+
+    <!-- ============================ AUTH WRAPPER ============================ -->
+    <div class="auth-wrapper">
+        <!-- Welcome Panel (slides left/right) -->
+        <div class="welcome-panel" id="welcomePanel">
+            <div class="welcome-inner">
+                <a href="../index.html" class="brand">DataScript AI</a>
+                <div class="welcome-text" id="welcomeText">
+                    <h1>BIENVENIDO<br>DE NUEVO</h1>
+                    <p>Transforma tus bases de datos en documentos profesionales con el poder de la inteligencia artificial.</p>
+                </div>
             </div>
+
+            <!-- Floating Decorations -->
+            <div class="panel-decorations">
+                <div class="particle pp1"></div><div class="particle pp2"></div><div class="particle pp3"></div>
+                <div class="particle pp4"></div><div class="particle pp5"></div><div class="particle pp6"></div>
+                <div class="particle pp7"></div><div class="particle pp8"></div><div class="particle pp9"></div>
+                <div class="particle pp10"></div><div class="particle pp11"></div><div class="particle pp12"></div>
+
+                <div class="float-brackets fb-1">{ }</div>
+                <div class="float-brackets fb-2">&lt;/&gt;</div>
+                <div class="float-brackets fb-3">[ ]</div>
+
+                <div class="db-icon-float dbi-1">
+                    <div class="db-cylinder">
+                        <div class="db-top"></div>
+                        <div class="db-body"></div>
+                    </div>
+                </div>
+
+                <div class="binary-float bin-1">0101</div>
+                <div class="binary-float bin-2">0xFF</div>
+
+                <div class="nn-nodes nn-1">
+                    <div class="nn-dot"></div><div class="nn-dot"></div><div class="nn-dot"></div>
+                    <div class="nn-line"></div>
+                </div>
+
+                <div class="float-icon fi-1"><div class="css-lock"><div class="lock-body"></div><div class="lock-shackle"></div></div></div>
+                <div class="float-icon fi-2"><div class="css-gear"><div class="gear-core"></div><div class="gear-tooth t1"></div><div class="gear-tooth t2"></div><div class="gear-tooth t3"></div><div class="gear-tooth t4"></div></div></div>
+                <div class="float-icon fi-3"><div class="css-chart"><div class="chart-col" style="height:30%"></div><div class="chart-col" style="height:60%"></div><div class="chart-col" style="height:45%"></div></div></div>
+
+                <div class="chart-float chart-1">
+                    <div class="chart-bar" style="height:40%"></div>
+                    <div class="chart-bar" style="height:70%"></div>
+                    <div class="chart-bar" style="height:55%"></div>
+                    <div class="chart-bar" style="height:85%"></div>
+                </div>
+            </div>
+
+            <div class="panel-glow"></div>
+        </div>
+
+        <!-- Form Panel -->
+        <div class="form-panel" id="formPanel">
+            <!-- Floating Molecules -->
+            <div class="form-decorations">
+                <div class="mol mol-1"></div>
+                <div class="mol mol-2"></div>
+                <div class="mol mol-3"></div>
+                <div class="mol mol-4"></div>
+                <div class="mol mol-5"></div>
+                <div class="mol mol-6"></div>
+                <div class="mol mol-7"></div>
+                <div class="mol mol-8"></div>
+                <div class="mol mol-9"></div>
+                <div class="mol mol-10"></div>
+                <div class="mol mol-11"></div>
+                <div class="mol mol-12"></div>
+                <div class="mol mol-13"></div>
+                <div class="mol mol-14"></div>
+                <div class="mol mol-15"></div>
+                <div class="mol mol-16"></div>
+                <div class="mol mol-17"></div>
+                <div class="mol mol-18"></div>
+                <div class="mol mol-19"></div>
+                <div class="mol mol-20"></div>
+                <div class="mol mol-21"></div>
+                <div class="mol mol-22"></div>
+                <div class="mol mol-23"></div>
+                <div class="mol mol-24"></div>
+            </div>
+
             <!-- LOGIN -->
             <div class="form-container login-form" id="loginFormContainer">
-                <h2>Iniciar Sesión</h2>
-                <div class="field">
+                <div class="form-header">
+                    <h2>Iniciar Sesión</h2>
+                    <p>Ingresa tus credenciales para continuar</p>
+                </div>
+
+                <div class="input-group">
                     <label>Usuario</label>
-                    <input type="text" id="loginUser" placeholder="Usuario">
+                    <div class="input-wrap">
+                        <input type="text" id="loginUser" placeholder="Ingresa tu usuario">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
                 </div>
-                <div class="field">
+
+                <div class="input-group">
                     <label>Contraseña</label>
-                    <input type="password" id="loginPass" placeholder="Contraseña">
+                    <div class="input-wrap">
+                        <input type="password" id="loginPass" placeholder="Ingresa tu contraseña">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
                 </div>
+
                 <button id="btnLogin">Acceder</button>
-                <p class="switch-link">¿No tiene una cuenta? <a href="#" id="showRegister">Regístrese</a></p>
+
+                <p class="switch-link">¿No tienes una cuenta? <a href="#" id="showRegister">Regístrate</a></p>
             </div>
+
             <!-- REGISTRO -->
-            <div class="form-container register-form" id="registerFormContainer" style="display: none;">
-                <h2>Regístrate</h2>
-                <div class="field-row">
-                    <div class="field"><label>Nombres</label><input type="text" id="regNombres"></div>
-                    <div class="field"><label>Apellidos</label><input type="text" id="regApellidos"></div>
+            <div class="form-container register-form" id="registerFormContainer" style="display:none;">
+                <div class="form-header">
+                    <h2>Regístrate</h2>
+                    <p>Crea tu cuenta para comenzar</p>
                 </div>
-                <div class="field"><label>Correo Electrónico</label><input type="email" id="regEmail"></div>
-                <div class="field">
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Nombres</label>
+                        <div class="input-wrap">
+                            <input type="text" id="regNombres" placeholder="Nombres">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Apellidos</label>
+                        <div class="input-wrap">
+                            <input type="text" id="regApellidos" placeholder="Apellidos">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>Correo Electrónico</label>
+                    <div class="input-wrap">
+                        <input type="email" id="regEmail" placeholder="correo@ejemplo.com">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="input-group">
                     <label>Tipo de uso</label>
-                    <select id="regTipoUso">
-                        <option>Personal</option><option>Profesional</option><option>Educativo</option><option>Empresarial</option>
-                    </select>
+                    <div class="input-wrap">
+                        <select id="regTipoUso">
+                            <option>Personal</option>
+                            <option>Profesional</option>
+                            <option>Educativo</option>
+                            <option>Empresarial</option>
+                        </select>
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
                 </div>
-                <div class="field"><label>Usuario</label><input type="text" id="regUsuario"></div>
-                <div class="field-row">
-                    <div class="field"><label>Contraseña</label><input type="password" id="regPassword"></div>
-                    <div class="field"><label>Confirmar</label><input type="password" id="regConfirmPassword"></div>
+
+                <div class="input-group">
+                    <label>Usuario</label>
+                    <div class="input-wrap">
+                        <input type="text" id="regUsuario" placeholder="Nombre de usuario">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    </div>
                 </div>
+
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>Contraseña</label>
+                        <div class="input-wrap">
+                            <input type="password" id="regPassword" placeholder="Contraseña">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Confirmar</label>
+                        <div class="input-wrap">
+                            <input type="password" id="regConfirmPassword" placeholder="Repite">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
                 <button id="btnRegister">Crear Usuario</button>
+
                 <p class="switch-link">¿Ya tienes una cuenta? <a href="#" id="showLogin">Iniciar Sesión</a></p>
             </div>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../js/login.js"></script>
 </body>

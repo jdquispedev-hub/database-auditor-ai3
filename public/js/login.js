@@ -12,6 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const showLoginLink = document.getElementById('showLogin');
     const btnLogin = document.getElementById('btnLogin');
     const btnRegister = document.getElementById('btnRegister');
+    const welcomePanel = document.getElementById('welcomePanel');
+    const formPanel = document.getElementById('formPanel');
+    const welcomeText = document.getElementById('welcomeText');
 
     // Verificar que los elementos existan
     if (!btnLogin || !btnRegister) {
@@ -19,12 +22,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Transición entre formularios
+    // Textos del panel de bienvenida
+    const loginWelcomeHTML = '<h1>BIENVENIDO<br>DE NUEVO</h1><p>Transforma tus bases de datos en documentos profesionales con el poder de la inteligencia artificial.</p>';
+    const registerWelcomeHTML = '<h1>ÚNETE A<br>NOSOTROS</h1><p>Regístrate y comienza a transformar tus bases de datos en documentos profesionales con el poder de la inteligencia artificial.</p>';
+
+    // Transición entre formularios con slide de paneles
     function fadeTransition(showLogin) {
         if (showLogin) {
+            // Modo Login: welcome panel a la izquierda, form a la derecha
+            welcomePanel.classList.remove('register-mode');
+            formPanel.classList.remove('register-mode');
+            if (welcomeText) welcomeText.innerHTML = loginWelcomeHTML;
             loginDiv.style.display = 'block';
             registerDiv.style.display = 'none';
         } else {
+            // Modo Register: welcome panel a la derecha, form a la izquierda
+            welcomePanel.classList.add('register-mode');
+            formPanel.classList.add('register-mode');
+            if (welcomeText) welcomeText.innerHTML = registerWelcomeHTML;
             loginDiv.style.display = 'none';
             registerDiv.style.display = 'block';
         }
